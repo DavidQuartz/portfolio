@@ -25,10 +25,18 @@ app.listen(process.env.PORT || 5000, '0.0.0.0', () => console.log("Server Runnin
 const contactEmail = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
   port: process.env.MAIL_PORT,
+  secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASSWORD
   },
+  connectionTimeout: 60000, // 60 seconds
+  greetingTimeout: 30000,   // 30 seconds
+  socketTimeout: 60000,     // 60 seconds
+  pool: true,               // Use connection pooling
+  maxConnections: 5,        // Maximum number of connections
+  maxMessages: 100,         // Maximum number of messages per connection
+  rateLimit: 14,            // Maximum number of messages per second
 });
 
 contactEmail.verify((error) => {
@@ -40,27 +48,36 @@ contactEmail.verify((error) => {
 });
 
 // API routes
-router.post("/contact", (req, res) => {
-  const name = req.body.firstName + req.body.lastName;
-  const email = req.body.email;
-  const message = req.body.message;
-  const phone = req.body.phone;
-  const mail = {
-    from: name,
-    to: "quartzdavid@gmail.com",
-    subject: "Contact Form Submission - Portfolio",
-    html: `<p>Name: ${name}</p>
-           <p>Email: ${email}</p>
-           <p>Phone: ${phone}</p>
-           <p>Message: ${message}</p>`,
-  };
-  contactEmail.sendMail(mail, (error) => {
-    if (error) {
-      res.json(error);
-    } else {
-      res.json({ code: 200, status: "Message Sent" });
-    }
-  });
+router.post("/contact", async (req, res) => {
+  try {
+    const name = req.body.firstName + " " + req.body.lastName;
+    const email = req.body.email;
+    const message = req.body.message;
+    const phone = req.body.phone;
+    
+    const mail = {
+      from: name,
+      to: "quartzdavid@gmail.com",
+      subject: "Contact Form Submission - Portfolio",
+      html: `<p>Name: ${name}</p>
+             <p>Email: ${email}</p>
+             <p>Phone: ${phone}</p>
+             <p>Message: ${message}</p>`,
+    };
+
+    // Send email with timeout handling
+    const info = await contactEmail.sendMail(mail);
+    console.log('Email sent successfully:', info.messageId);
+    
+    res.json({ code: 200, status: "Message Sent" });
+  } catch (error) {
+    console.error("Email sending error:", error);
+    res.status(500).json({ 
+      code: 500, 
+      status: "Error", 
+      message: "Failed to send message. Please try again later." 
+    });
+  }
 });
 
 // Catch all handler: send back React's index.html file for client-side routing
