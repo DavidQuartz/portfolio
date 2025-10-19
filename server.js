@@ -7,7 +7,7 @@ const nodemailer = require("nodemailer");
 // server used to send send emails
 const app = express();
 const corsOptions = {
-  origin: ["http://localhost:3000", "https://portfolio-production-99b0.up.railway.app/"], // Add your production domain
+  origin: ["http://localhost:3000", "https://portfolio-production-99b0.up.railway.app/"],
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"],
   optionsSuccessStatus: 200,
@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'build')));
 
 app.use("/", router);
-app.listen(process.env.PORT || 5050, () => console.log("Server Running"));
+app.listen(process.env.PORT || 5000, '0.0.0.0', () => console.log("Server Running"));
 
 const contactEmail = nodemailer.createTransport({
   host: process.env.MAIL_HOST,
