@@ -27,7 +27,12 @@ export const Contact = () => {
     e.preventDefault();
     setButtonText("Sending...");
     try {
-      const response = await fetch("http://localhost:5050/contact", {
+      // Use relative URL for production, absolute for development
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? '/contact'  // Relative URL works in production
+        : 'http://localhost:5000/contact';
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json;charset=utf-8",
