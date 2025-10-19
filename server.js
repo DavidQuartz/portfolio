@@ -1,4 +1,6 @@
+require("dotenv").config();
 const express = require("express");
+const path = require("path");
 const router = express.Router();
 const cors = require("cors");
 const nodemailer = require("nodemailer");
@@ -6,7 +8,7 @@ const nodemailer = require("nodemailer");
 // server used to send send emails
 const app = express();
 const corsOptions = {
-  origin: ["http://localhost:3000"],
+  origin: ["http://localhost:3000", "https://your-domain.com"], // Add your production domain
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"],
   optionsSuccessStatus: 200,
@@ -14,14 +16,19 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, 'build')));
+
 app.use("/", router);
-app.listen(5000, () => console.log("Server Running"));
+app.listen(process.env.PORT || 5050, () => console.log("Server Running"));
 
 const contactEmail = nodemailer.createTransport({
-  service: 'gmail',
+  host: process.env.MAIL_HOST,
+  port: process.env.MAIL_PORT,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASSWORD
   },
 });
 
@@ -33,6 +40,7 @@ contactEmail.verify((error) => {
   }
 });
 
+// API routes
 router.post("/contact", (req, res) => {
   const name = req.body.firstName + req.body.lastName;
   const email = req.body.email;
@@ -54,4 +62,9 @@ router.post("/contact", (req, res) => {
       res.json({ code: 200, status: "Message Sent" });
     }
   });
+});
+
+// Catch all handler: send back React's index.html file for client-side routing
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });

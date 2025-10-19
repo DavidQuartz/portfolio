@@ -11,7 +11,7 @@ export const Footer = () => {
             <span className="brand-logo">David</span>
           </Col>
           <Col size={12} sm={6} padding-top={5} className="text-center text-sm-end">
-            <div className="social-icon">
+            <div className="social-icon social-icon-footer">
               <a href="https://www.linkedin.com/in/davidquartz" target="_blank" rel="noreferrer"><img src={navIcon1} alt="LinkedIn" /></a>
               <a href="https://www.instagram.com/davidquartz" target="_blank" rel="noreferrer"><img src={navIcon2} alt="Instagram" /></a>
             </div>
