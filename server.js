@@ -3,6 +3,7 @@ const path = require("path");
 const router = express.Router();
 const cors = require("cors");
 const nodemailer = require("nodemailer");
+const { Resend } = require('resend');
 
 // server used to send send emails
 const app = express();
@@ -22,30 +23,35 @@ app.use(express.static(path.join(__dirname, 'build')));
 app.use("/", router);
 app.listen(process.env.PORT || 5000, '0.0.0.0', () => console.log("Server Running"));
 
-const contactEmail = nodemailer.createTransport({
-  host: process.env.MAIL_HOST,
-  port: process.env.MAIL_PORT,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASSWORD
-  },
-  connectionTimeout: 60000, // 60 seconds
-  greetingTimeout: 30000,   // 30 seconds
-  socketTimeout: 60000,     // 60 seconds
-  pool: true,               // Use connection pooling
-  maxConnections: 5,        // Maximum number of connections
-  maxMessages: 100,         // Maximum number of messages per connection
-  rateLimit: 14,            // Maximum number of messages per second
-});
+// Email configuration based on environment
+const isProduction = process.env.NODE_ENV === 'production';
 
-contactEmail.verify((error) => {
-  if (error) {
-    console.log(error);
-  } else {
-    console.log("Ready to Send");
-  }
-});
+// Initialize Resend for production
+const resend = isProduction ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// Initialize Nodemailer for development (Mailtrap)
+const contactEmail = !isProduction ? nodemailer.createTransport({
+  host: process.env.MAIL_HOST || 'smtp.mailtrap.io',
+  port: process.env.MAIL_PORT || 2525,
+  secure: false,
+  auth: {
+    user: process.env.MAIL_USER || '54f052b7356807',
+    pass: process.env.MAIL_PASSWORD || '97cddd75cea83b'
+  },
+}) : null;
+
+// Verify email service (only for development with Mailtrap)
+if (!isProduction && contactEmail) {
+  contactEmail.verify((error) => {
+    if (error) {
+      console.log('Mailtrap verification error:', error);
+    } else {
+      console.log('Mailtrap Ready to Send');
+    }
+  });
+} else if (isProduction) {
+  console.log('Resend Ready to Send');
+}
 
 // API routes
 router.post("/contact", async (req, res) => {
@@ -55,19 +61,34 @@ router.post("/contact", async (req, res) => {
     const message = req.body.message;
     const phone = req.body.phone;
     
-    const mail = {
-      from: name,
-      to: "quartzdavid@gmail.com",
-      subject: "Contact Form Submission - Portfolio",
-      html: `<p>Name: ${name}</p>
-             <p>Email: ${email}</p>
-             <p>Phone: ${phone}</p>
-             <p>Message: ${message}</p>`,
-    };
-
-    // Send email with timeout handling
-    const info = await contactEmail.sendMail(mail);
-    console.log('Email sent successfully:', info.messageId);
+    let result;
+    
+    if (isProduction) {
+      // Production: Use Resend SDK
+      result = await resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: 'quartzdavid@gmail.com',
+        subject: 'Contact Form Submission - Portfolio',
+        html: `<p>Name: ${name}</p>
+               <p>Email: ${email}</p>
+               <p>Phone: ${phone}</p>
+               <p>Message: ${message}</p>`
+      });
+      console.log('Email sent successfully via Resend:', result.data?.id);
+    } else {
+      // Development: Use Mailtrap with Nodemailer
+      const mail = {
+        from: `${name} <test@mailtrap.io>`,
+        to: "quartzdavid@gmail.com",
+        subject: "Contact Form Submission - Portfolio",
+        html: `<p>Name: ${name}</p>
+               <p>Email: ${email}</p>
+               <p>Phone: ${phone}</p>
+               <p>Message: ${message}</p>`,
+      };
+      result = await contactEmail.sendMail(mail);
+      console.log('Email sent successfully via Mailtrap:', result.messageId);
+    }
     
     res.json({ code: 200, status: "Message Sent" });
   } catch (error) {
