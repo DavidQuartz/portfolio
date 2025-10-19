@@ -1,4 +1,5 @@
 # Multi-stage build for React + Node.js
+# Cache bust: Added resend package
 FROM node:18-alpine as build
 
 # Set working directory
@@ -7,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN yarn
+# Install dependencies (force clean install)
+RUN yarn install --frozen-lockfile
 
 # Copy source code
 COPY . .
