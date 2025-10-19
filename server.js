@@ -7,7 +7,7 @@ const nodemailer = require("nodemailer");
 // server used to send send emails
 const app = express();
 const corsOptions = {
-  origin: ["http://localhost:3000", "https://your-domain.com"], // Add your production domain
+  origin: ["http://localhost:3000", "https://portfolio-production-99b0.up.railway.app/"], // Add your production domain
   methods: ["POST", "OPTIONS"],
   allowedHeaders: ["Content-Type"],
   optionsSuccessStatus: 200,
